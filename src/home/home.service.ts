@@ -6,6 +6,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { HomeResponseDto } from './dtos/home.dto';
 import { PropertyType, UserRole } from '@prisma/client';
+import { UserInterface } from 'src/user/decorators/user.decorator';
 
 interface GetHomesFilter {
   city?: string;
@@ -179,5 +180,35 @@ export class HomeService {
     if (!home) throw new NotFoundException();
 
     return home.realtor;
+  }
+
+  async inquireById(buyer: UserInterface, id: number, message: string) {
+    const realtor = await this.getRealtorByHomeId(id);
+    return this.prismaService.message.create({
+      data: {
+        realtor_id: realtor.id,
+        buyer_id: buyer.id,
+        home_id: id,
+        message,
+      },
+    });
+  }
+
+  getMessagesByHome(homeId: number) {
+    return this.prismaService.message.findMany({
+      where: {
+        home_id: homeId,
+      },
+      select: {
+        message: true,
+        buyer: {
+          select: {
+            name: true,
+            phone_number: true,
+            email: true,
+          },
+        },
+      },
+    });
   }
 }

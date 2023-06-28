@@ -12,7 +12,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { HomeService } from './home.service';
-import { CreateHomeDto, HomeResponseDto, UpdateHomeDto } from './dtos/home.dto';
+import {
+  CreateHomeDto,
+  HomeResponseDto,
+  InquireDto,
+  UpdateHomeDto,
+} from './dtos/home.dto';
 import { PropertyType, UserRole } from '@prisma/client';
 import { User, UserInterface } from 'src/user/decorators/user.decorator';
 import { Roles } from 'src/decorators/roles.decorator';
@@ -81,11 +86,23 @@ export class HomeController {
   }
 
   @Roles(UserRole.USER)
-  @Post('/ingquire/:id')
+  @Post('/:id/inquire')
   inquire(
     @Param('id', ParseIntPipe) homeId: number,
     @User() user: UserInterface,
+    @Body() { message }: InquireDto,
   ) {
-    return '';
+    return this.homeService.inquireById(user, homeId, message);
+  }
+
+  @Roles(UserRole.REALTOR)
+  @Get('/:id/messages')
+  async getHomeMessages(
+    @Param('id', ParseIntPipe) homeId: number,
+    @User() user: UserInterface,
+  ) {
+    const realtor = await this.homeService.getRealtorByHomeId(homeId);
+    if (realtor.id !== user.id) throw new UnauthorizedException();
+    return this.homeService.getMessagesByHome(homeId);
   }
 }
